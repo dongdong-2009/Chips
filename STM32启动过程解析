@@ -179,10 +179,11 @@ DCD DMA2_Channel3_IRQHandler ；159
 DCD DMA2_Channel4_5_IRQHandler ；160  // 建立中断向量表 结束
 
 AREA |.text|, CODE, READONLY ；161    //
-Reset_Handler PROC ；162
+
+Reset_Handler PROC ；162   //第162行：复位中断服务程序的开始。PROC ... ENDP 结构表示程序的开始和结束。
 EXPORT Reset_Handler ；163
 IF DATA_IN_ExtSRAM == 1 ；164
-LDR R0,= 0x00000114 ；165     //LDR只能在当前PC的4KB范围内跳转，B命令只能在当前PC的32MB范围内调转
+LDR R0,= 0x00000114 ；165             //LDR只能在当前PC的4KB范围内跳转，B命令只能在当前PC的32MB范围内调转
 LDR R1,= 0x40021014 ；166
 STR R0,[R1] ；167
 LDR R0,= 0x000001E0 ；168
@@ -222,7 +223,8 @@ ENDIF ；201
 IMPORT __main ；202
 LDR R0, =__main ；203
 BX R0 ；204
-ENDP ；205
+ENDP ；205                    //复位中断服务程序的结束。
+
 ALIGN ；206
 IF :DEF:__MICROLIB ；207
 EXPORT __initial_sp ；208
@@ -269,7 +271,7 @@ END ；224
  第84行：标号__Vectors，表示中断向量表入口地址。
  第85—160行：建立中断向量表。
  第161行：
- 第162行：复位中断服务程序，PROC…ENDP结构表示程序的开始和结束。
+ 第162行：复位中断服务程序，PROC … ENDP 结构表示程序的开始和结束。
  第163行：声明复位中断向量Reset_Handler为全局属性，这样外部文件就可以调用此复位中断服务。
  第164行：IF…ENDIF为预编译结构，判断是否使用外部SRAM，在第1行中已定义为“不使用”。
  第165—201行：此部分代码的作用是设置FSMC总线以支持SRAM，因不使用外部SRAM因此此部分代码不会被编译。
