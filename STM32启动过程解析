@@ -99,7 +99,7 @@ IMPORT DMA2_Channel4_5_IRQHandler ；81
 AREA RESET, DATA, READONLY ；82
 EXPORT __Vectors ；83
 __Vectors ；84          // 标号__Vectors，表示中断向量表入口地址
-
+                        // DCD: 数据定义伪指令, 一般用于为特定的数据分配存储单元，同时可完成已分配存储单元的初始化.
 DCD __initial_sp ；85   // 第85—160行：建立中断向量表
 DCD Reset_Handler ；86
 DCD NMIException ；87
