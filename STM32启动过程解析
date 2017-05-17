@@ -95,10 +95,12 @@ IMPORT DMA2_Channel1_IRQHandler ；78
 IMPORT DMA2_Channel2_IRQHandler ；79
 IMPORT DMA2_Channel3_IRQHandler ；80
 IMPORT DMA2_Channel4_5_IRQHandler ；81
+
 AREA RESET, DATA, READONLY ；82
 EXPORT __Vectors ；83
-__Vectors ；84
-DCD __initial_sp ；85
+__Vectors ；84          // 标号__Vectors，表示中断向量表入口地址
+
+DCD __initial_sp ；85   // 第85—160行：建立中断向量表
 DCD Reset_Handler ；86
 DCD NMIException ；87
 DCD HardFaultException ；88
@@ -173,8 +175,9 @@ DCD TIM7_IRQHandler ；156
 DCD DMA2_Channel1_IRQHandler ；157
 DCD DMA2_Channel2_IRQHandler ；158
 DCD DMA2_Channel3_IRQHandler ；159
-DCD DMA2_Channel4_5_IRQHandler ；160
-AREA |.text|, CODE, READONLY ；161
+DCD DMA2_Channel4_5_IRQHandler ；160  // 建立中断向量表 结束
+
+AREA |.text|, CODE, READONLY ；161    //
 Reset_Handler PROC ；162
 EXPORT Reset_Handler ；163
 IF DATA_IN_ExtSRAM == 1 ；164
@@ -247,11 +250,11 @@ END ；224
 此行若用C语言表达则等价于：#define DATA_IN_ExtSRAM 0
  第2行：定义栈空间大小为0x00000400个字节，即1Kbyte。
 此行亦等价于：#define Stack_Size 0x00000400
- 第3行：伪指令AREA，表示…
- 第4行：开辟一段大小为Stack_Size的内存空间作为栈。
+ 第3行：伪指令AREA，表示...
+ 第4行：开辟一段大小为Stack_Size的内存空间作为栈 (在片内SRAM中)。
  第5行：标号__initial_sp，表示栈空间顶地址。
  第6行：定义堆空间大小为0x00000400个字节，也为1Kbyte。
- 第7行：伪指令AREA，表示
+ 第7行：伪指令AREA，表示...
  第8行：标号__heap_base，表示堆空间起始地址。
  第9行：开辟一段大小为Heap_Size的内存空间作为堆。
  第10行：标号__heap_limit，表示堆空间结束地址。
