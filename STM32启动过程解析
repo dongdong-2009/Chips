@@ -100,7 +100,7 @@ IMPORT DMA2_Channel4_5_IRQHandler ；81
 AREA RESET, DATA, READONLY ；82
 EXPORT __Vectors ；83
 __Vectors ；84          // 标号__Vectors，表示中断向量表入口地址
-                        // DCD: 数据定义伪指令, 一般用于为特定的数据分配存储单元，同时可完成已分配存储单元的初始化.
+                        // DCD: DCD是ARM的伪指令。作用是分配一个字的空间。功能类似于C51里定义一个数组并初始化.
 DCD __initial_sp ；85   // 第85—160行：建立中断向量表
 DCD Reset_Handler ；86
 DCD NMIException ；87
@@ -182,7 +182,7 @@ AREA |.text|, CODE, READONLY ；161    //
 Reset_Handler PROC ；162
 EXPORT Reset_Handler ；163
 IF DATA_IN_ExtSRAM == 1 ；164
-LDR R0,= 0x00000114 ；165
+LDR R0,= 0x00000114 ；165     //LDR只能在当前PC的4KB范围内跳转，B命令只能在当前PC的32MB范围内调转
 LDR R1,= 0x40021014 ；166
 STR R0,[R1] ；167
 LDR R0,= 0x000001E0 ；168
