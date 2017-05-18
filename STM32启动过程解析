@@ -222,7 +222,9 @@ IF DATA_IN_ExtSRAM == 1 ；164
     STR R0,[R1] ；200
 ENDIF ；201
 
-IMPORT __main ；202
+IMPORT __main ；202       // __main标号并不表示C程序中的main函数入口地址，因此第204行也并不是跳转至main函数开始执行C程序。
+                          // __main标号表示C/C++标准实时库函数里的一个初始化子程序__main的入口地址。该程序的一个主要作用是初始化堆栈（对于程序
+                          // 清单一来说则是跳转__user_initial_stackheap标号进行初始化堆栈的），并初始化映像文件，最后跳转C程序中的main函数。
 LDR R0, =__main ；203
 BX R0 ；204
 ENDP ；205                    //复位中断服务程序的结束。
