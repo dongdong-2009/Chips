@@ -38,3 +38,129 @@ AHBENR是DMA,SDIO时钟使能。
 APB2ENR是APB2外设总线的时钟使能。
 APB1ENR是APB1外设总线的时钟使能。
 其他的五个不常用。
+
+
+------------------------------------------------------------------------------------
+对于单片机系统来说，CPU和总线以及外设的时钟设置是非常重要的，因为没有时钟就没有时序。
+------------------------------------------------------------------------------------
+由于时钟是一个由内而外的东西，具体设置要从寄存器开始。
+
+RCC 寄存器结构，RCC_TypeDeff，在文件“stm32f10x.h”中定义如下：
+typedef struct
+{
+  __IO uint32_t CR;
+  __IO uint32_t CFGR;
+  __IO uint32_t CIR;
+  __IO uint32_t APB2RSTR;
+  __IO uint32_t APB1RSTR;
+  __IO uint32_t AHBENR;
+  __IO uint32_t APB2ENR;
+  __IO uint32_t APB1ENR;
+  __IO uint32_t BDCR;
+  __IO uint32_t CSR;
+ 
+#ifdef STM32F10X_CL 
+  __IO uint32_t AHBRSTR;
+  __IO uint32_t CFGR2;
+#endif /* STM32F10X_CL */ 
+ 
+#if defined (STM32F10X_LD_VL) || defined (STM32F10X_MD_VL) || defined (STM32F10X_HD_VL) 
+  uint32_t RESERVED0;
+  __IO uint32_t CFGR2;
+#endif /* STM32F10X_LD_VL || STM32F10X_MD_VL || STM32F10X_HD_VL */ 
+} RCC_TypeDef;
+
+
+一般板子上只有8Mhz的晶振，而增强型最高工作频率为72Mhz，显然需要用PLL倍频9倍，这些设置都需要在初始化阶段完成。
+
+使用HSE时钟，设置时钟参数流程：
+1、将RCC寄存器重新设置为默认值  RCC_DeInit;
+2、打开外部高速时钟晶振HSE      RCC_HSEConfig(RCC_HSE_ON);
+3、等待外部高速时钟晶振工作     HSEStartUpStatus = RCC_WaitForHSEStartUp();
+4、设置AHB时钟         RCC_HCLKConfig;
+5、设置高速AHB时钟     RCC_PCLK2Config;
+6、设置低速速AHB时钟   RCC_PCLK1Config;
+7、设置PLL            RCC_PLLConfig;
+8、打开PLL            RCC_PLLCmd(ENABLE);
+9、等待PLL工作       while(RCC_GetFlagStatus(RCC_FLAG_PLLRDY) == RESET) 
+10、设置系统时钟       RCC_SYSCLKConfig;
+11、判断是否PLL是系统时钟     while(RCC_GetSYSCLKSource() != 0x08)
+12、打开要使用的外设时钟    RCC_APB2PeriphClockCmd()/RCC_APB1PeriphClockCmd()
+
+
+
+为了方便说明，借用一下例程的RCC设置函数，并用中文注释的形式加以说明： 
+static void RCC_Config(void)
+{
+ 
+/* 这里是重置了RCC的设置，类似寄存器复位 */
+RCC_DeInit();
+ 
+/* 使能外部高速晶振 */
+RCC_HSEConfig(RCC_HSE_ON);
+ 
+/* 等待高速晶振稳定 */
+HSEStartUpStatus = RCC_WaitForHSEStartUp();
+ 
+if (HSEStartUpStatus == SUCCESS)
+{
+    /* 使能flash预读取缓冲区 */
+    FLASH_PrefetchBufferCmd(FLASH_PrefetchBuffer_Enable);
+ 
+    /* 令Flash处于等待状态，2是针对高频时钟的，这两句跟RCC没直接关系，可以暂且略过 */
+    FLASH_SetLatency(FLASH_Latency_2);
+ 
+    /* HCLK = SYSCLK 设置高速总线时钟=系统时钟*/
+    RCC_HCLKConfig(RCC_SYSCLK_Div1);
+ 
+    /* PCLK2 = HCLK 设置低速总线2时钟=高速总线时钟*/
+    RCC_PCLK2Config(RCC_HCLK_Div1);
+ 
+    /* PCLK1 = HCLK/2 设置低速总线1的时钟=高速时钟的二分频*/
+    RCC_PCLK1Config(RCC_HCLK_Div2);
+ 
+    /* ADCCLK = PCLK2/6 设置ADC外设时钟=低速总线2时钟的六分频*/
+    RCC_ADCCLKConfig(RCC_PCLK2_Div6);
+ 
+    /* Set PLL clock output to 72MHz using HSE (8MHz) as entry clock */ 
+    //这句很关键
+    /* 利用锁相环讲外部8Mhz晶振9倍频到72Mhz */ 
+    RCC_PLLConfig(RCC_PLLSource_HSE_Div1, RCC_PLLMul_9); 
+ 
+    /* Enable PLL 使能锁相环*/
+    RCC_PLLCmd(ENABLE); 
+ 
+ 
+    /* Wait till PLL is ready 等待锁相环输出稳定*/
+    while (RCC_GetFlagStatus(RCC_FLAG_PLLRDY) == RESET)
+    {}
+ 
+    /* Select PLL as system clock source 将锁相环输出设置为系统时钟 */
+    RCC_SYSCLKConfig(RCC_SYSCLKSource_PLLCLK);
+ 
+    /* Wait till PLL is used as system clock source 等待校验成功*/
+    while (RCC_GetSYSCLKSource() != 0x08)
+    {}
+}
+ 
+    /* Enable FSMC, GPIOD, GPIOE, GPIOF, GPIOG and AFIO clocks */
+    //使能外围接口总线时钟，注意各外设的隶属情况，不同芯片的分配不同，到时候查手册就可以
+RCC_AHBPeriphClockCmd(RCC_AHBPeriph_FSMC, ENABLE);
+ 
+RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOD | RCC_APB2Periph_GPIOE |
+                         RCC_APB2Periph_GPIOF | RCC_APB2Periph_GPIOG |
+                         RCC_APB2Periph_AFIO, ENABLE);
+}
+由上述程序可以看出系统时钟的设定是比较复杂的，外设越多，需要考虑的因素就越多。同时这种设定也是有规律可循的，设定参数也是有顺序规范的，这是应用中应当注意的，例如PLL的设定需要在使能之前，一旦PLL使能后参数不可更改。
+经过此番设置后，由于我的电路板上是8Mhz晶振，所以系统时钟为72Mhz，高速总线和低速总线2都为72Mhz，低速总线1为36Mhz，ADC时钟为12Mhz，USB时钟经过1.5分频设置就可以实现48Mhz的数据传输。
+一般性的时钟设置需要先考虑系统时钟的来源，是内部RC还是外部晶振还是外部的振荡器，是否需要PLL。然后考虑内部总线和外部总线，最后考虑外设的时钟信号。遵从先倍频作为CPU时钟，然后在由内向外分频，下级迁就上级的原则有点儿类似PCB制图的规范化要求，在这里也一样
+ 
+注：
+ 在STM32中，连接在APB1(低速外设)上的设备有：电源接口、备份接口、CAN、USB、I2C1、I2C2、UART2、UART3、SPI2、窗口看门狗、Timer2、Timer3、Timer4 。
+连接在APB2(高速外设)上的设备有：GPIO_A-E、USART1、ADC1、ADC2、ADC3、TIM1、TIM8、SPI1、ALL。
+程序举例：
+APB1(低速外设)
+RCC_APB1PeriphClockCmd(RCC_APB1Periph_CAN, ENABLE); 
+APB2（高速外设）
+RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA , ENABLE);
+RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1 | RCC_APB2Periph_GPIOA  , ENABLE);
