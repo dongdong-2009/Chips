@@ -71,7 +71,7 @@ typedef struct
 } RCC_TypeDef;
 
 
-一般板子上只有8Mhz的晶振，而增强型最高工作频率为72Mhz，显然需要用PLL倍频9倍，这些设置都需要在初始化阶段完成。
+一般板子上只有8Mhz的晶振(我的板子)，而增强型最高工作频率为72Mhz，显然需要用PLL倍频9倍，这些设置都需要在初始化阶段完成。
 
 使用HSE时钟，设置时钟参数流程：
 1、将RCC寄存器重新设置为默认值  RCC_DeInit;
@@ -79,7 +79,7 @@ typedef struct
 3、等待外部高速时钟晶振工作     HSEStartUpStatus = RCC_WaitForHSEStartUp();
 4、设置AHB时钟         RCC_HCLKConfig;
 5、设置高速AHB时钟     RCC_PCLK2Config;
-6、设置低速速AHB时钟   RCC_PCLK1Config;
+6、设置低速AHB时钟     RCC_PCLK1Config;
 7、设置PLL            RCC_PLLConfig;
 8、打开PLL            RCC_PLLCmd(ENABLE);
 9、等待PLL工作       while(RCC_GetFlagStatus(RCC_FLAG_PLLRDY) == RESET) 
@@ -151,16 +151,25 @@ RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOD | RCC_APB2Periph_GPIOE |
                          RCC_APB2Periph_GPIOF | RCC_APB2Periph_GPIOG |
                          RCC_APB2Periph_AFIO, ENABLE);
 }
-由上述程序可以看出系统时钟的设定是比较复杂的，外设越多，需要考虑的因素就越多。同时这种设定也是有规律可循的，设定参数也是有顺序规范的，这是应用中应当注意的，例如PLL的设定需要在使能之前，一旦PLL使能后参数不可更改。
-经过此番设置后，由于我的电路板上是8Mhz晶振，所以系统时钟为72Mhz，高速总线和低速总线2都为72Mhz，低速总线1为36Mhz，ADC时钟为12Mhz，USB时钟经过1.5分频设置就可以实现48Mhz的数据传输。
-一般性的时钟设置需要先考虑系统时钟的来源，是内部RC还是外部晶振还是外部的振荡器，是否需要PLL。然后考虑内部总线和外部总线，最后考虑外设的时钟信号。遵从先倍频作为CPU时钟，然后在由内向外分频，下级迁就上级的原则有点儿类似PCB制图的规范化要求，在这里也一样
- 
+
+由上述程序可以看出系统时钟的设定是比较复杂的，外设越多，需要考虑的因素就越多。
+同时这种设定也是有规律可循的，设定参数也是有顺序规范的，这是应用中应当注意的，例如PLL的设定需要在使能之前，一旦PLL使能后参数不可更改。
+
+经过此番设置后，由于我的电路板上是8Mhz晶振，所以系统时钟为72Mhz，高速总线和低速总线2都为72Mhz，低速总线1为36Mhz，ADC时钟为12Mhz，
+USB时钟经过1.5分频设置就可以实现48Mhz的数据传输。
+
+一般性的时钟设置，需要先考虑系统时钟的来源，是内部RC，还是外部晶振，还是外部的振荡器，是否需要PLL。
+然后考虑内部总线和外部总线，最后考虑外设的时钟信号。
+
+遵从先倍频作为CPU时钟，然后再由内向外分频，下级迁就上级的原则有点儿类似PCB制图的规范化要求，在这里也一样
+
 注：
- 在STM32中，连接在APB1(低速外设)上的设备有：电源接口、备份接口、CAN、USB、I2C1、I2C2、UART2、UART3、SPI2、窗口看门狗、Timer2、Timer3、Timer4 。
-连接在APB2(高速外设)上的设备有：GPIO_A-E、USART1、ADC1、ADC2、ADC3、TIM1、TIM8、SPI1、ALL。
+在STM32中，
+连接在APB1(低速外设)上的设备有： 电源接口、备份接口、CAN、USB、I2C1、I2C2、UART2、UART3、SPI2、窗口看门狗、Timer2、Timer3、Timer4。
+连接在APB2(高速外设)上的设备有： GPIO_A-E、USART1、ADC1、ADC2、ADC3、TIM1、TIM8、SPI1、ALL。
+
 程序举例：
-APB1(低速外设)
-RCC_APB1PeriphClockCmd(RCC_APB1Periph_CAN, ENABLE); 
-APB2（高速外设）
-RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA , ENABLE);
-RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1 | RCC_APB2Periph_GPIOA  , ENABLE);
+APB1(低速外设)： RCC_APB1PeriphClockCmd(RCC_APB1Periph_CAN, ENABLE); 
+
+APB2(高速外设)： RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA , ENABLE);
+                RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1 | RCC_APB2Periph_GPIOA  , ENABLE);
