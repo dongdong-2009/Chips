@@ -26,7 +26,7 @@ MCO  是 STM32 的一个时钟输出IO(PA8)，它可以选择一个时钟信号�
 
 USB时钟一般是48M，PLL经过一个预分频器产生。
 
-注意：任何外设在使用之前，必须使能相应的时钟（废话）
+注意：任何外设在使用之前，必须使能相应的时钟.
 
 
 RCC寄存器：
@@ -88,11 +88,9 @@ typedef struct
 12、打开要使用的外设时钟    RCC_APB2PeriphClockCmd()/RCC_APB1PeriphClockCmd()
 
 
-
-为了方便说明，借用一下例程的RCC设置函数，并用中文注释的形式加以说明： 
+为了方便说明，借用一下例程的RCC设置函数，加以说明： 
 static void RCC_Config(void)
 {
- 
 /* 这里是重置了RCC的设置，类似寄存器复位 */
 RCC_DeInit();
  
@@ -106,7 +104,7 @@ if (HSEStartUpStatus == SUCCESS)
 {
     /* 使能flash预读取缓冲区 */
     FLASH_PrefetchBufferCmd(FLASH_PrefetchBuffer_Enable);
- 
+    
     /* 令Flash处于等待状态，2是针对高频时钟的，这两句跟RCC没直接关系，可以暂且略过 */
     FLASH_SetLatency(FLASH_Latency_2);
  
@@ -130,7 +128,6 @@ if (HSEStartUpStatus == SUCCESS)
     /* Enable PLL 使能锁相环*/
     RCC_PLLCmd(ENABLE); 
  
- 
     /* Wait till PLL is ready 等待锁相环输出稳定*/
     while (RCC_GetFlagStatus(RCC_FLAG_PLLRDY) == RESET)
     {}
@@ -142,7 +139,7 @@ if (HSEStartUpStatus == SUCCESS)
     while (RCC_GetSYSCLKSource() != 0x08)
     {}
 }
- 
+
     /* Enable FSMC, GPIOD, GPIOE, GPIOF, GPIOG and AFIO clocks */
     //使能外围接口总线时钟，注意各外设的隶属情况，不同芯片的分配不同，到时候查手册就可以
 RCC_AHBPeriphClockCmd(RCC_AHBPeriph_FSMC, ENABLE);
