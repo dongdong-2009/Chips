@@ -120,10 +120,8 @@ if (HSEStartUpStatus == SUCCESS)
     /* ADCCLK = PCLK2/6 设置ADC外设时钟=低速总线2时钟的六分频*/
     RCC_ADCCLKConfig(RCC_PCLK2_Div6);
  
-    /* Set PLL clock output to 72MHz using HSE (8MHz) as entry clock */ 
-    //这句很关键
-    /* 利用锁相环讲外部8Mhz晶振9倍频到72Mhz */ 
-    RCC_PLLConfig(RCC_PLLSource_HSE_Div1, RCC_PLLMul_9); 
+    /* Set PLL clock output to 72MHz using HSE (8MHz) as entry clock */
+    RCC_PLLConfig(RCC_PLLSource_HSE_Div1, RCC_PLLMul_9);    // 这句非常关键，利用锁相环将外部8Mhz晶振9倍频到72Mhz
  
     /* Enable PLL 使能锁相环*/
     RCC_PLLCmd(ENABLE); 
