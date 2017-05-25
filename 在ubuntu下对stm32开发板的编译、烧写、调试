@@ -1,0 +1,66 @@
+
+----------------------------------------------
+1.首先在终端里安装一系列支持的包
+----------------------------------------------
+    sudo apt-get install build-essential git flex bison libgmp3-dev libmpfr-dev libncurses5-dev libmpc-dev autoconf texinfo libtool libftdi-dev libusb-1.0-0-dev zlib1g zlib1g-dev python-yaml  
+
+----------------------------------------------
+2.安装gcc-arm-embedded工具链和openocd
+----------------------------------------------
+gcc-arm-embedded可以到https://launchpad.net/gcc-arm-embedded/+download上下载, 解压到你知道的目录生成 (gcc-arm-none-eabi+一段字符)的文件夹, 在终端输入
+
+    sudo gedit  ~/.bashrc  
+
+在最后一行添加
+export PATH=$PATH:/dir/gcc-arm-none-eabi-4_9-2015q3/bin
+
+把编译器添加到环境中. 重启or source .... 
+
+
+安装openocd,在终端输入
+
+    git clone git://openocd.git.sourceforge.net/gitroot/openocd/openocd  
+    cd openocd  
+    ./bootstrap  
+    ./configure --enable-maintainer-mode --disable-option-checking --disable-werror --prefix=${PREFIX} --enable-dummy --enable-usb_blaster_libftdi --enable-ep93xx --enable-at91rm9200 --enable-presto_libftdi --enable-usbprog --enable-jlink --enable-vsllink --enable-rlink --enable-stlink --enable-arm-jtag-ew  
+    make  
+    sudo make install  
+    
+    
+    
+    
+
+----------------------------------------------
+ST-LINKの接続(rulesファイルの設定)
+----------------------------------------------
+ST-LINKと言っていますが，見かけ上はUSB miniケーブルでPCとマイコンがつながっているだけです．以降の節で，マイコンとPCをつなげることになりますが，その前にST-LINKへのアクセスをsudoのような許可なしでできるようにしておきます．
+
+/etc/udev/rules.d以下に，49-stlink.rulesというファイルを作成し，以下のような内容を書き込んでください．
+
+# stlinkv1
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="3744", \
+  MODE:="0666", \
+  SYMLINK+="stlinkv1_%n"
+# stlinkv2
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="3748", \
+  MODE:="0666", \
+  SYMLINK+="stlinkv2_%n"
+# stlinkv2-1
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="374b", \
+  MODE:="0666", \
+  SYMLINK+="stlinkv2-1_%n"
+
+その後，再起動もしくは以下を実行してください．
+
+udevadm control --reload-rules
+udevadm trigger
+
+これでUSBでPCとマイコンをつないだ後，sudoみたいなことをしなくても簡単にST-LINKにアクセス→マイコンにアクセスすることができるようになります．
+
+
+
+
+-----------------------------------------------------------------------
+用 openocd 烧写程序
+-----------------------------------------------------------------------
+openocd -f interface/stlink-v2-1.cfg -c "set WORKAREASIZE 0x2000" -f target/stm32f4x_stlink.cfg -c "program rcc.elf verify reset"
