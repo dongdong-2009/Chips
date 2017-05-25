@@ -33,7 +33,8 @@ export PATH=$PATH:/dir/gcc-arm-none-eabi-4_9-2015q3/bin
 ----------------------------------------------
 ST-LINKの接続(rulesファイルの設定)
 ----------------------------------------------
-ST-LINKと言っていますが，見かけ上はUSB miniケーブルでPCとマイコンがつながっているだけです．以降の節で，マイコンとPCをつなげることになりますが，その前にST-LINKへのアクセスをsudoのような許可なしでできるようにしておきます．
+ST-LINKと言っていますが，見かけ上はUSB miniケーブルでPCとマイコンがつながっているだけです．
+以降の節で，マイコンとPCをつなげることになりますが，その前にST-LINKへのアクセスをsudoのような許可なしでできるようにしておきます．
 
 /etc/udev/rules.d以下に，49-stlink.rulesというファイルを作成し，以下のような内容を書き込んでください．
 
@@ -64,3 +65,5 @@ udevadm trigger
 用 openocd 烧写程序
 -----------------------------------------------------------------------
 openocd -f interface/stlink-v2-1.cfg -c "set WORKAREASIZE 0x2000" -f target/stm32f4x_stlink.cfg -c "program rcc.elf verify reset"
+OR
+openocd -f interface/stlink-v2-1.cfg -c "set WORKAREASIZE 0x2000" -f target/stm32f4x.cfg -c "program rcc.elf verify reset"
