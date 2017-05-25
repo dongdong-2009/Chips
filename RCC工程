@@ -1,0 +1,284 @@
+
+shi@ubuntu:~/Documents/stm32_discovery_arm_gcc/STM32F4-Discovery_FW_V1.1.0/Project/Peripheral_Examples/RCC$ cat Makefile 
+
+# Put your stlink folder here so make burn will work.
+STLINK=~/stlink.git
+
+SRCS=main.c system_stm32f4xx.c stm32f4xx_it.c
+
+# Library modules
+SRCS += stm32f4xx_exti.c stm32f4xx_gpio.c stm32f4xx_rcc.c stm32f4xx_syscfg.c misc.c
+SRCS += stm32f4_discovery.c 
+
+# Binaries will be generated with this name (.elf, .bin, .hex, etc)
+PROJ_NAME=rcc
+
+#######################################################################################
+
+STM_COMMON=../../..
+
+CC=arm-none-eabi-gcc
+OBJCOPY=arm-none-eabi-objcopy
+
+CFLAGS  = -g -O2 -Wall -Tstm32_flash.ld 
+CFLAGS += -DUSE_STDPERIPH_DRIVER
+CFLAGS += -mlittle-endian -mthumb -mcpu=cortex-m4 -mthumb-interwork
+CFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
+CFLAGS += -I.
+
+# Include files from STM libraries
+CFLAGS += -I$(STM_COMMON)/Utilities/STM32F4-Discovery
+CFLAGS += -I$(STM_COMMON)/Libraries/CMSIS/Include 
+CFLAGS += -I$(STM_COMMON)/Libraries/CMSIS/ST/STM32F4xx/Include
+CFLAGS += -I$(STM_COMMON)/Libraries/STM32F4xx_StdPeriph_Driver/inc
+
+
+# add startup file to build
+SRCS += $(STM_COMMON)/Libraries/CMSIS/ST/STM32F4xx/Source/Templates/TrueSTUDIO/startup_stm32f4xx.s 
+
+OBJS = $(SRCS:.c=.o)
+
+vpath %.c $(STM_COMMON)/Libraries/STM32F4xx_StdPeriph_Driver/src $(STM_COMMON)/Utilities/STM32F4-Discovery
+
+.PHONY: proj
+
+all: proj
+
+proj: $(PROJ_NAME).elf
+
+$(PROJ_NAME).elf: $(SRCS)
+	$(CC) $(CFLAGS) $^ -o $@ 
+	$(OBJCOPY) -O ihex $(PROJ_NAME).elf $(PROJ_NAME).hex
+	$(OBJCOPY) -O binary $(PROJ_NAME).elf $(PROJ_NAME).bin
+
+clean:
+	rm -f *.o
+	rm -f $(PROJ_NAME).elf
+	rm -f $(PROJ_NAME).hex
+	rm -f $(PROJ_NAME).bin
+
+
+# Flash the STM32F4
+burn: proj
+	$(STLINK)/st-flash write $(PROJ_NAME).bin 0x8000000
+shi@ubuntu:~/Documents/stm32_discovery_arm_gcc/STM32F4-Discovery_FW_V1.1.0/Project/Peripheral_Examples/RCC$ 
+shi@ubuntu:~/Documents/stm32_discovery_arm_gcc/STM32F4-Discovery_FW_V1.1.0/Project/Peripheral_Examples/RCC$ 
+shi@ubuntu:~/Documents/stm32_discovery_arm_gcc/STM32F4-Discovery_FW_V1.1.0/Project/Peripheral_Examples/RCC$ cat stm32_flash.ld
+/*
+*****************************************************************************
+**
+**  File        : stm32_flash.ld
+**
+**  Abstract    : Linker script for STM32F407VG Device with
+**                1024KByte FLASH, 192KByte RAM
+**
+**                Set heap size, stack size and stack location according
+**                to application requirements.
+**
+**                Set memory bank area and size if external memory is used.
+**
+**  Target      : STMicroelectronics STM32
+**
+**  Environment : Atollic TrueSTUDIO(R)
+**
+**  Distribution: The file is distributed �as is,� without any warranty
+**                of any kind.
+**
+**  (c)Copyright Atollic AB.
+**  You may use this file as-is or modify it according to the needs of your
+**  project. Distribution of this file (unmodified or modified) is not
+**  permitted. Atollic AB permit registered Atollic TrueSTUDIO(R) users the
+**  rights to distribute the assembled, compiled & linked contents of this
+**  file as part of an application binary file, provided that it is built
+**  using the Atollic TrueSTUDIO(R) toolchain.
+**
+*****************************************************************************
+*/
+
+/* Entry Point */
+ENTRY(Reset_Handler)
+
+/* Highest address of the user mode stack */
+_estack = 0x20020000;    /* end of 128K RAM on AHB bus*/
+
+/* Generate a link error if heap and stack don't fit into RAM */
+_Min_Heap_Size = 0;      /* required amount of heap  */
+_Min_Stack_Size = 0x400; /* required amount of stack */
+
+/* Specify the memory areas */
+MEMORY
+{
+  FLASH (rx)      : ORIGIN = 0x08000000, LENGTH = 1024K
+  RAM (xrw)       : ORIGIN = 0x20000000, LENGTH = 192K
+  MEMORY_B1 (rx)  : ORIGIN = 0x60000000, LENGTH = 0K
+}
+
+/* Define output sections */
+SECTIONS
+{
+  /* The startup code goes first into FLASH */
+  .isr_vector :
+  {
+    . = ALIGN(4);
+    KEEP(*(.isr_vector)) /* Startup code */
+    . = ALIGN(4);
+  } >FLASH
+
+  /* The program code and other data goes into FLASH */
+  .text :
+  {
+    . = ALIGN(4);
+    *(.text)           /* .text sections (code) */
+    *(.text*)          /* .text* sections (code) */
+    *(.rodata)         /* .rodata sections (constants, strings, etc.) */
+    *(.rodata*)        /* .rodata* sections (constants, strings, etc.) */
+    *(.glue_7)         /* glue arm to thumb code */
+    *(.glue_7t)        /* glue thumb to arm code */
+	*(.eh_frame)
+
+    KEEP (*(.init))
+    KEEP (*(.fini))
+
+    . = ALIGN(4);
+    _etext = .;        /* define a global symbols at end of code */
+    _exit = .;
+  } >FLASH
+
+
+   .ARM.extab   : { *(.ARM.extab* .gnu.linkonce.armextab.*) } >FLASH
+    .ARM : {
+    __exidx_start = .;
+      *(.ARM.exidx*)
+      __exidx_end = .;
+    } >FLASH
+
+  .preinit_array     :
+  {
+    PROVIDE_HIDDEN (__preinit_array_start = .);
+    KEEP (*(.preinit_array*))
+    PROVIDE_HIDDEN (__preinit_array_end = .);
+  } >FLASH
+  .init_array :
+  {
+    PROVIDE_HIDDEN (__init_array_start = .);
+    KEEP (*(SORT(.init_array.*)))
+    KEEP (*(.init_array*))
+    PROVIDE_HIDDEN (__init_array_end = .);
+  } >FLASH
+  .fini_array :
+  {
+    PROVIDE_HIDDEN (__fini_array_start = .);
+    KEEP (*(.fini_array*))
+    KEEP (*(SORT(.fini_array.*)))
+    PROVIDE_HIDDEN (__fini_array_end = .);
+  } >FLASH
+
+  /* used by the startup to initialize data */
+  _sidata = .;
+
+  /* Initialized data sections goes into RAM, load LMA copy after code */
+  .data : AT ( _sidata )
+  {
+    . = ALIGN(4);
+    _sdata = .;        /* create a global symbol at data start */
+    *(.data)           /* .data sections */
+    *(.data*)          /* .data* sections */
+
+    . = ALIGN(4);
+    _edata = .;        /* define a global symbol at data end */
+  } >RAM
+
+  /* Uninitialized data section */
+  . = ALIGN(4);
+  .bss :
+  {
+    /* This is used by the startup in order to initialize the .bss secion */
+    _sbss = .;         /* define a global symbol at bss start */
+    __bss_start__ = _sbss;
+    *(.bss)
+    *(.bss*)
+    *(COMMON)
+
+    . = ALIGN(4);
+    _ebss = .;         /* define a global symbol at bss end */
+    __bss_end__ = _ebss;
+  } >RAM
+
+  /* User_heap_stack section, used to check that there is enough RAM left */
+  ._user_heap_stack :
+  {
+    . = ALIGN(4);
+    PROVIDE ( end = . );
+    PROVIDE ( _end = . );
+    . = . + _Min_Heap_Size;
+    . = . + _Min_Stack_Size;
+    . = ALIGN(4);
+  } >RAM
+
+  /* MEMORY_bank1 section, code must be located here explicitly            */
+  /* Example: extern int foo(void) __attribute__ ((section (".mb1text"))); */
+  .memory_b1_text :
+  {
+    *(.mb1text)        /* .mb1text sections (code) */
+    *(.mb1text*)       /* .mb1text* sections (code)  */
+    *(.mb1rodata)      /* read-only data (constants) */
+    *(.mb1rodata*)
+  } >MEMORY_B1
+
+  /* Remove information from the standard libraries */
+  /DISCARD/ :
+  {
+    libc.a ( * )
+    libm.a ( * )
+    libgcc.a ( * )
+  }
+
+  .ARM.attributes 0 : { *(.ARM.attributes) }
+}
+shi@ubuntu:~/Documents/stm32_discovery_arm_gcc/STM32F4-Discovery_FW_V1.1.0/Project/Peripheral_Examples/RCC$ 
+shi@ubuntu:~/Documents/stm32_discovery_arm_gcc/STM32F4-Discovery_FW_V1.1.0/Project/Peripheral_Examples/RCC$ 
+shi@ubuntu:~/Documents/stm32_discovery_arm_gcc/STM32F4-Discovery_FW_V1.1.0/Project/Peripheral_Examples/RCC$ arm-none-eabi-objdump -h rcc.elf 
+
+rcc.elf:     file format elf32-littlearm
+
+Sections:
+Idx Name          Size      VMA       LMA       File off  Algn
+  0 .isr_vector   00000188  08000000  08000000  00008000  2**0
+                  CONTENTS, ALLOC, LOAD, READONLY, DATA
+  1 .text         0000119c  08000188  08000188  00008188  2**2
+                  CONTENTS, ALLOC, LOAD, READONLY, CODE
+  2 .ARM          00000008  08001324  08001324  00009324  2**2
+                  CONTENTS, ALLOC, LOAD, READONLY, DATA
+  3 .init_array   00000008  0800132c  0800132c  0000932c  2**2
+                  CONTENTS, ALLOC, LOAD, DATA
+  4 .fini_array   00000004  08001334  08001334  00009334  2**2
+                  CONTENTS, ALLOC, LOAD, DATA
+  5 .data         0000046c  20000000  08001338  00010000  2**3
+                  CONTENTS, ALLOC, LOAD, DATA
+  6 .jcr          00000004  2000046c  080017a4  0001046c  2**2
+                  CONTENTS, ALLOC, LOAD, DATA
+  7 .bss          00000020  20000470  080017a8  00010470  2**2
+                  ALLOC
+  8 ._user_heap_stack 00000400  20000490  080017c8  00010470  2**0
+                  ALLOC
+  9 .ARM.attributes 00000030  00000000  00000000  00010470  2**0
+                  CONTENTS, READONLY
+ 10 .debug_info   00003c37  00000000  00000000  000104a0  2**0
+                  CONTENTS, READONLY, DEBUGGING
+ 11 .debug_abbrev 00000f57  00000000  00000000  000140d7  2**0
+                  CONTENTS, READONLY, DEBUGGING
+ 12 .debug_aranges 00000150  00000000  00000000  00015030  2**3
+                  CONTENTS, READONLY, DEBUGGING
+ 13 .debug_ranges 00000068  00000000  00000000  00015180  2**3
+                  CONTENTS, READONLY, DEBUGGING
+ 14 .debug_line   000014b4  00000000  00000000  000151e8  2**0
+                  CONTENTS, READONLY, DEBUGGING
+ 15 .debug_str    000018fa  00000000  00000000  0001669c  2**0
+                  CONTENTS, READONLY, DEBUGGING
+ 16 .comment      00000070  00000000  00000000  00017f96  2**0
+                  CONTENTS, READONLY
+ 17 .debug_frame  00000890  00000000  00000000  00018008  2**2
+                  CONTENTS, READONLY, DEBUGGING
+ 18 .debug_loc    000014cb  00000000  00000000  00018898  2**0
+                  CONTENTS, READONLY, DEBUGGING
+shi@ubuntu:~/Documents/stm32_discovery_arm_gcc/STM32F4-Discovery_FW_V1.1.0/Project/Peripheral_Examples/RCC$ 
